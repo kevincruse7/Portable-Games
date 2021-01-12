@@ -21,16 +21,16 @@ void initDisplay(void) {
 
   displayWriteData(0x09, 0);  // No data decoding
   displayWriteData(0x0A, DISPLAY_SCREEN_BRIGHTNESS);  // Screen brightness
-  displayWriteData(0x0B, MODEL_BOARD_NUM_COLS - 1);  // Column scan limit
+  displayWriteData(0x0B, MODEL_BOARD_COLS - 1);  // Column scan limit
   displayWriteData(0x0C, 1);  // Normal operation (shutdown mode)
   displayWriteData(0x0F, 0);  // Normal operation (display test mode)
 }
 
-void displayBoard(unsigned char board[MODEL_BOARD_NUM_ROWS][MODEL_BOARD_NUM_COLS]) {
+void displayBoard(unsigned char board[MODEL_BOARD_ROWS][MODEL_BOARD_COLS]) {
 
-  for (int row = 0; row < MODEL_BOARD_NUM_ROWS; row++) {
+  for (int row = 0; row < MODEL_BOARD_ROWS; row++) {
     byte rowData = 0;
-    for (int col = 0; col < MODEL_BOARD_NUM_COLS; col++) {
+    for (int col = 0; col < MODEL_BOARD_COLS; col++) {
       if (board[row][col] == 1) {
         rowData += B10000000 >> col;
       }

@@ -1,8 +1,5 @@
-#ifndef SOUND_H
-#define SOUND_H
+#pragma once
 
 void initSound(void);
 
 void playMovementSound(void);
-
-#endif  // SOUND_H

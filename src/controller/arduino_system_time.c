@@ -1,17 +1,22 @@
-#ifdef __AVR_ATmega2560__
+/**
+ * Implementation of the system time module for the Arduino Mega 2560.
+ *
+ * @author Kevin Cruse
+ */
 
+#ifdef __AVR_ATmega2560__
 #include "controller/system_time.h"
 
-#include "Arduino.h"
+#include <Arduino.h>
 
-SystemTime getSystemTime(void) {
+SystemTime system_time_get(void) {
 
   return millis();
 }
 
-void systemTimeSleep(SystemTime time) {
+void system_time_sleep(SystemTime time) {
 
   delay(time);
 }
 
-#endif
+#endif  // __AVR_ATmega2560__

@@ -16,7 +16,7 @@ void initSound(void) {
 
 void playMovementSound(void) {
 
-  tone(SOUND_BUZZER_PIN, 440, 500 / TICK_RATE);
+  tone(SOUND_BUZZER_PIN, 440, 500 / CONTROLLER_MAIN_TICK_RATE);
 }
 
 #endif
