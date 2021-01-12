@@ -7,9 +7,7 @@
 
 #pragma once
 
-#include <errno.h>
 #include <stdbool.h>
-#include <stdlib.h>
 
 /**
  * Defines how many rows a game board has.
@@ -71,76 +69,3 @@ void model_destroy(struct Model **pp_model);
  * @throws EINVAL Model pointer is @c NULL, model is malformed, or move type is invalid.
  */
 void model_move(struct Model *p_model, enum MoveType move_type);
-
-/**
- * Determines if the given model is malformed.
- *
- * @param p_model Pointer to model.
- * @return @c true if malformed, @c false if not.
- */
-static bool is_malformed(struct Model *p_model);
-
-struct Model *model_create(void) {
-
-  struct Model *p_model = (struct Model *) calloc(1, sizeof(struct Model));
-  p_model->board[0][0] = true;
-  return p_model;
-}
-
-void model_destroy(struct Model **pp_model) {
-
-  free(*pp_model);
-  *pp_model = NULL;
-}
-
-void model_move(struct Model *p_model, enum MoveType move_type) {
-
-  if (is_malformed(p_model)) {
-    errno = EINVAL;
-    return;
-  }
-
-  p_model->board[p_model->position[0]][p_model->position[1]] = false;
-
-  switch (move_type) {
-    case UP:
-      if (p_model->position[0] <= 0) {
-        p_model->position[0] = MODEL_BOARD_ROWS - 1;
-      } else {
-        p_model->position[0]--;
-      }
-      break;
-    case DOWN:
-      if (p_model->position[0] >= MODEL_BOARD_ROWS - 1) {
-        p_model->position[0] = 0;
-      } else {
-        p_model->position[0]++;
-      }
-      break;
-    case LEFT:
-      if (p_model->position[1] <= 0) {
-        p_model->position[1] = MODEL_BOARD_COLS - 1;
-      } else {
-        p_model->position[1]--;
-      }
-      break;
-    case RIGHT:
-      if (p_model->position[1] >= MODEL_BOARD_COLS - 1) {
-        p_model->position[1] = 0;
-      } else {
-        p_model->position[1]++;
-      }
-      break;
-    default:
-      break;
-  }
-
-  p_model->board[p_model->position[0]][p_model->position[1]] = true;
-}
-
-static bool is_malformed(struct Model *p_model) {
-
-  return p_model == NULL
-         || p_model->position[0] >= MODEL_BOARD_ROWS
-         || p_model->position[1] >= MODEL_BOARD_COLS;
-}

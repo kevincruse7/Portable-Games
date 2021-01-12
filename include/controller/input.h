@@ -12,7 +12,7 @@
  * Defines the possible types of game input to receive from user.
  */
 enum InputType {
-  ACTION, MOVE, EXIT, NONE
+  ACTION, MOVE, NONE, EXIT
 };
 
 /**
