@@ -5,7 +5,8 @@
  */
 
 #ifdef __AVR_ATmega2560__
-#include "view/display.h"
+
+#include "display.h"
 
 #include <Arduino.h>
 #include <errno.h>
@@ -13,6 +14,7 @@
 
 #include "model/model.h"
 
+#define DISPLAY_ONBOARD_LED_PIN 13
 #define DISPLAY_DIN_PIN 22
 #define DISPLAY_CS_PIN 23
 #define DISPLAY_CLK_PIN 24
@@ -25,6 +27,7 @@ static void display_write_data(byte address, byte data);
 
 void display_init(void) {
 
+  pinMode(DISPLAY_ONBOARD_LED_PIN, OUTPUT);
   pinMode(DISPLAY_DIN_PIN, OUTPUT);
   pinMode(DISPLAY_CS_PIN, OUTPUT);
   pinMode(DISPLAY_CLK_PIN, OUTPUT);
@@ -38,7 +41,7 @@ void display_init(void) {
   uninitialized = false;
 }
 
-void display_render(struct Model *p_model) {
+void display_render(const struct Model *p_model) {
 
   if (uninitialized) {
     errno = EIO;

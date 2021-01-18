@@ -8,62 +8,82 @@
 
 #include <stdbool.h>
 
-#include "controller/input.h"
-#include "controller/system_time.h"
+#include "controller/input/input.h"
+#include "controller/system_time/system_time.h"
 
 #include "model/model.h"
-#include "view/view.h"
+
+#include "view/display/display.h"
+#include "view/sound/sound.h"
 
 // Calculate how much time is remaining in tick and sleep for that duration
-static void sleep_for_remaining_tick_time(SystemTime start_time);
+static void sleep_for_remainder_of_tick(SystemTime start_time);
 
 void run(void) {
 
   input_init();
-  view_init();
+  display_init();
+  sound_init();
 
   struct Model *p_model = model_create();
-  enum InputType last_input = NONE;
 
-  unsigned ticks_between_renders = CONTROLLER_MAIN_TICK_RATE / CONTROLLER_RENDER_TICK_RATE;
-  unsigned ticks_until_next_render = 0;
+  enum MoveType current_move = MOVE_TYPE_NONE;
+  enum MoveType last_move = MOVE_TYPE_NONE;
+  enum InputType last_input = INPUT_TYPE_NONE;
+
+  const unsigned TICKS_BETWEEN_FRAMES = CONTROLLER_TICK_RATE / CONTROLLER_FRAME_RATE;
+  const unsigned TICKS_BETWEEN_REPEAT_MOVES = TICKS_BETWEEN_FRAMES;
+
+  unsigned ticks_until_next_frame = 0;
+  unsigned ticks_until_next_repeat_move = 0;
 
   while (true) {
     SystemTime start_time = system_time_get();
 
-    enum MoveType move_type;
-    switch (input_get(&move_type)) {
-      case MOVE:
-        if (last_input != MOVE) {
-          model_move(p_model, move_type);
-          view_play_movement_sound();
+    switch (input_get(&current_move)) {
+      case INPUT_TYPE_ACTION:
+        last_input = INPUT_TYPE_ACTION;
+        break;
+      case INPUT_TYPE_MOVE:
+        if (current_move != last_move || ticks_until_next_repeat_move == 0) {
+          last_input = INPUT_TYPE_MOVE;
+          ticks_until_next_repeat_move = TICKS_BETWEEN_REPEAT_MOVES;
         }
-        last_input = MOVE;
         break;
-      case NONE:
-        last_input = NONE;
-        break;
-      case EXIT:
+      case INPUT_TYPE_EXIT:
         model_destroy(&p_model);
         return;
       default:
         break;
     }
 
-    if (ticks_until_next_render == 0) {
-      view_render(p_model);
-      ticks_until_next_render = ticks_between_renders;
-    } else {
-      ticks_until_next_render--;
+    if (ticks_until_next_repeat_move != 0) {
+      ticks_until_next_repeat_move--;
     }
 
-    sleep_for_remaining_tick_time(start_time);
+    if (ticks_until_next_frame == 0) {
+      if (last_input == INPUT_TYPE_MOVE) {
+        model_move(p_model, current_move);
+        sound_movement_play();
+
+        last_move = current_move;
+      }
+
+      display_render(p_model);
+
+      last_input = INPUT_TYPE_NONE;
+      ticks_until_next_frame = TICKS_BETWEEN_FRAMES;
+    } else {
+      ticks_until_next_frame--;
+    }
+
+    sleep_for_remainder_of_tick(start_time);
   }
 }
 
-static void sleep_for_remaining_tick_time(SystemTime start_time) {
+static void sleep_for_remainder_of_tick(SystemTime start_time) {
 
-  SystemTime remaining_time = 1000 / CONTROLLER_MAIN_TICK_RATE - (system_time_get() - start_time);
+  SystemTime remaining_time = 1000 / CONTROLLER_TICK_RATE - (system_time_get() - start_time);
   if (remaining_time > 0) {
     system_time_sleep(remaining_time);
   }

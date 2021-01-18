@@ -5,7 +5,8 @@
  */
 
 #ifdef __AVR_ATmega2560__
-#include "controller/input.h"
+
+#include "input.h"
 
 #include <Arduino.h>
 #include <errno.h>
@@ -35,34 +36,34 @@ enum InputType input_get(enum MoveType *p_move_type) {
 
   if (uninitialized) {
     errno = EIO;
-    return NONE;
+    return INPUT_TYPE_NONE;
   }
   if (p_move_type == NULL) {
     errno = EINVAL;
-    return NONE;
+    return INPUT_TYPE_NONE;
   }
 
   if (digitalRead(INPUT_ACTION_PIN) == LOW) {
-    return ACTION;
+    return INPUT_TYPE_ACTION;
   }
   if (digitalRead(INPUT_UP_PIN) == LOW) {
-    *p_move_type = UP;
-    return MOVE;
+    *p_move_type = MOVE_TYPE_UP;
+    return INPUT_TYPE_MOVE;
   }
   if (digitalRead(INPUT_LEFT_PIN) == LOW) {
-    *p_move_type = LEFT;
-    return MOVE;
+    *p_move_type = MOVE_TYPE_LEFT;
+    return INPUT_TYPE_MOVE;
   }
   if (digitalRead(INPUT_RIGHT_PIN) == LOW) {
-    *p_move_type = RIGHT;
-    return MOVE;
+    *p_move_type = MOVE_TYPE_RIGHT;
+    return INPUT_TYPE_MOVE;
   }
   if (digitalRead(INPUT_DOWN_PIN) == LOW) {
-    *p_move_type = DOWN;
-    return MOVE;
+    *p_move_type = MOVE_TYPE_DOWN;
+    return INPUT_TYPE_MOVE;
   }
 
-  return NONE;
+  return INPUT_TYPE_NONE;
 }
 
 #endif  // __AVR_ATmega2560__

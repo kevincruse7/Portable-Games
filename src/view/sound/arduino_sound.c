@@ -5,7 +5,8 @@
  */
 
 #ifdef __AVR_ATmega2560__
-#include "view/sound.h"
+
+#include "sound.h"
 
 #include <Arduino.h>
 #include <errno.h>
@@ -33,7 +34,7 @@ void sound_movement_play(void) {
     return;
   }
 
-  tone(SOUND_BUZZER_PIN, 220, 500 / CONTROLLER_RENDER_TICK_RATE);
+  tone(SOUND_BUZZER_PIN, 220, 500 / CONTROLLER_FRAME_RATE);
 }
 
 #endif  // __AVR_ATmega2560__

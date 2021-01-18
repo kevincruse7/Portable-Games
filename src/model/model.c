@@ -36,28 +36,28 @@ void model_move(struct Model *p_model, enum MoveType move_type) {
   p_model->board[p_model->position[0]][p_model->position[1]] = false;
 
   switch (move_type) {
-    case UP:
+    case MOVE_TYPE_UP:
       if (p_model->position[0] <= 0) {
         p_model->position[0] = MODEL_BOARD_ROWS - 1;
       } else {
         p_model->position[0]--;
       }
       break;
-    case DOWN:
+    case MOVE_TYPE_DOWN:
       if (p_model->position[0] >= MODEL_BOARD_ROWS - 1) {
         p_model->position[0] = 0;
       } else {
         p_model->position[0]++;
       }
       break;
-    case LEFT:
+    case MOVE_TYPE_LEFT:
       if (p_model->position[1] <= 0) {
         p_model->position[1] = MODEL_BOARD_COLS - 1;
       } else {
         p_model->position[1]--;
       }
       break;
-    case RIGHT:
+    case MOVE_TYPE_RIGHT:
       if (p_model->position[1] >= MODEL_BOARD_COLS - 1) {
         p_model->position[1] = 0;
       } else {

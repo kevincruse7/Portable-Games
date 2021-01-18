@@ -41,7 +41,7 @@ struct Model {
  * Defines the legal move types along a game board.
  */
 enum MoveType {
-  UP, DOWN, LEFT, RIGHT
+  MOVE_TYPE_NONE, MOVE_TYPE_UP, MOVE_TYPE_DOWN, MOVE_TYPE_LEFT, MOVE_TYPE_RIGHT
 };
 
 /**

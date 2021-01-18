@@ -5,7 +5,8 @@
  */
 
 #ifdef __AVR_ATmega2560__
-#include "controller/system_time.h"
+
+#include "system_time.h"
 
 #include <Arduino.h>
 

@@ -12,7 +12,7 @@
  * Defines the possible types of game input to receive from user.
  */
 enum InputType {
-  ACTION, MOVE, NONE, EXIT
+  INPUT_TYPE_NONE, INPUT_TYPE_ACTION, INPUT_TYPE_MOVE, INPUT_TYPE_EXIT
 };
 
 /**
@@ -21,10 +21,10 @@ enum InputType {
 void input_init(void);
 
 /**
- * Polls the input device to retrieve the current game input. If the input
- * type is a move, then sets the given move type to the retrieved move.
+ * Polls the input device to retrieve the current game input. If the type
+ * of input was a move, then sets the given move type to the input.
  *
- * @param p_move_type Pointer to move type to set if retrieved input is a move.
+ * @param p_move_type Pointer to move type to set if the type of input is a move.
  *
  * @returns Type of input retrieved.
  *
