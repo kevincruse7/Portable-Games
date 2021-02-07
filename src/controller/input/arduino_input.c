@@ -10,7 +10,7 @@
 
 #include <Arduino.h>
 #include <errno.h>
-#include <stdint.h>
+#include <stdbool.h>
 
 // Pin mappings to input buttons
 #define INPUT_ACTION_PIN 28
@@ -20,7 +20,7 @@
 #define INPUT_DOWN_PIN 32
 
 // Is the input device uninitialized?
-static uint8_t uninitialized = 1;
+static bool uninitialized = true;
 
 void input_init(void) {
 
@@ -30,7 +30,7 @@ void input_init(void) {
   pinMode(INPUT_RIGHT_PIN, INPUT_PULLUP);
   pinMode(INPUT_DOWN_PIN, INPUT_PULLUP);
 
-  uninitialized = 0;
+  uninitialized = false;
 }
 
 enum InputType input_get(enum Direction *p_direction) {
@@ -44,6 +44,7 @@ enum InputType input_get(enum Direction *p_direction) {
     return INPUT_TYPE_NONE;
   }
 
+  // Read input pins and return corresponding enum value
   if (digitalRead(INPUT_ACTION_PIN) == LOW) {
     return INPUT_TYPE_ACTION;
   }

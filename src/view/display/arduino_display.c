@@ -10,7 +10,7 @@
 
 #include <Arduino.h>
 #include <errno.h>
-#include <stdint.h>
+#include <stdbool.h>
 
 #include "model/model.h"
 
@@ -20,7 +20,7 @@
 #define DISPLAY_CLK_PIN 24
 
 // Is the display device uninitialized?
-static uint8_t uninitialized = 1;
+static bool uninitialized = true;
 
 // Serially writes the given data to the given address on the display
 static void display_write_data(uint8_t address, uint8_t data);
@@ -38,7 +38,7 @@ void display_init(void) {
   display_write_data(0x0C, 1);  // Normal operation (shutdown mode)
   display_write_data(0x0F, 0);  // Normal operation (display test mode)
 
-  uninitialized = 0;
+  uninitialized = false;
 }
 
 void display_render(const struct Model *p_model) {
@@ -52,6 +52,7 @@ void display_render(const struct Model *p_model) {
     return;
   }
 
+  // Convert row on board to byte and send out to display
   for (int row = 0; row < MODEL_BOARD_ROWS; row++) {
     byte rowData = 0;
     for (int col = 0; col < MODEL_BOARD_COLS; col++) {

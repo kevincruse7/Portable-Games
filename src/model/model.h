@@ -9,12 +9,12 @@
 #include <stdbool.h>
 
 /**
- * Defines how many rows a game board has, with possible integer values spanning [1, 255].
+ * Defines how many rows a game board has, with possible integer values spanning [1, 65,535].
  */
 #define MODEL_BOARD_ROWS 8
 
 /**
- * Defines how many columns a game board has, with possible integer values spanning [1, 255].
+ * Defines how many columns a game board has, with possible integer values spanning [1, 65,535].
  */
 #define MODEL_BOARD_COLS 8
 
@@ -45,7 +45,7 @@ struct Model {
   /**
    * The current note to be played by the sound device, represented in Hertz.
    */
-  unsigned short current_note;
+  unsigned current_note;
 
   /**
    * Generic pointer to game-specific data.

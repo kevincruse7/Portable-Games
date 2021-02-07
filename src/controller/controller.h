@@ -9,14 +9,14 @@
 #include "model/model.h"
 
 /**
- * Defines a tick rate in ticks per second, with possible integer values spanning [1, 255].
+ * Defines a tick rate in ticks per second, with possible integer values spanning [1, 65,535].
  * This is used to determine how often the input device should be polled.
  */
 #define CONTROLLER_TICK_RATE 64
 
 /**
  * Defines a frame rate in frames per second, with possible integer values spanning
- * [1, 255]. This determines how often the view should be updated.
+ * [1, 65,535]. This determines how often the view should be updated.
  */
 #define CONTROLLER_FRAME_RATE 8
 

@@ -7,7 +7,7 @@
 #include "controller/controller.h"
 
 #include <errno.h>
-#include <stdint.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <time.h>
 
@@ -24,6 +24,7 @@ static void sleep_for_remainder_of_tick(SystemTime start_time);
 
 void run(const struct ModelFunctions *p_model_functions) {
 
+  // Error out if passed functions structure is malformed
   if (p_model_functions == NULL
       || p_model_functions->create == NULL
       || p_model_functions->destroy == NULL
@@ -33,6 +34,7 @@ void run(const struct ModelFunctions *p_model_functions) {
     return;
   }
 
+  // Initialize system devices
   input_init();
   display_init();
   sound_init();
@@ -44,25 +46,28 @@ void run(const struct ModelFunctions *p_model_functions) {
   enum Direction last_direction = DIRECTION_NONE;
   enum InputType last_input = INPUT_TYPE_NONE;
 
-  const uint8_t TICKS_BETWEEN_FRAMES = CONTROLLER_TICK_RATE / CONTROLLER_FRAME_RATE;
-  const uint8_t TICKS_BETWEEN_ACTIONS = TICKS_BETWEEN_FRAMES;
-  const uint8_t TICKS_BETWEEN_REPEAT_MOVES = TICKS_BETWEEN_FRAMES;
+  const unsigned TICKS_BETWEEN_FRAMES = CONTROLLER_TICK_RATE / CONTROLLER_FRAME_RATE;
+  const unsigned TICKS_BETWEEN_ACTIONS = TICKS_BETWEEN_FRAMES;
+  const unsigned TICKS_BETWEEN_REPEAT_MOVES = TICKS_BETWEEN_FRAMES;
 
-  uint8_t ticks_until_next_frame = 0;
-  uint8_t ticks_until_next_action = 0;
-  uint8_t ticks_until_next_repeat_move = 0;
+  unsigned ticks_until_next_frame = 0;
+  unsigned ticks_until_next_action = 0;
+  unsigned ticks_until_next_repeat_move = 0;
 
-  while (1) {
+  while (true) {
     SystemTime start_time = system_time_get();
 
+    // Get user input, if there is any
     switch (input_get(&current_direction)) {
       case INPUT_TYPE_ACTION:
+        // Only register an action if the cooldown has finished
         if (ticks_until_next_action == 0) {
           last_input = INPUT_TYPE_ACTION;
           ticks_until_next_action = TICKS_BETWEEN_ACTIONS;
         }
         break;
       case INPUT_TYPE_MOVE:
+        // Only register a move if the cooldown has finished
         if (current_direction != last_direction || ticks_until_next_repeat_move == 0) {
           last_input = INPUT_TYPE_MOVE;
           ticks_until_next_repeat_move = TICKS_BETWEEN_REPEAT_MOVES;
@@ -75,6 +80,7 @@ void run(const struct ModelFunctions *p_model_functions) {
         break;
     }
 
+    // Update cooldowns
     if (ticks_until_next_action != 0) {
       ticks_until_next_action--;
     }
@@ -82,7 +88,9 @@ void run(const struct ModelFunctions *p_model_functions) {
       ticks_until_next_repeat_move--;
     }
 
+    // Render new frame on frame ticks
     if (ticks_until_next_frame == 0) {
+      // Send input to model
       if (last_input == INPUT_TYPE_ACTION) {
         p_model_functions->action(p_model);
       } else if (last_input == INPUT_TYPE_MOVE) {
@@ -90,10 +98,12 @@ void run(const struct ModelFunctions *p_model_functions) {
         last_direction = current_direction;
       }
 
+      // Advance to next frame and push to devices
       p_model_functions->next_frame(p_model);
       sound_play(p_model);
       display_render(p_model);
 
+      // Reset input and frame cooldown
       last_input = INPUT_TYPE_NONE;
       ticks_until_next_frame = TICKS_BETWEEN_FRAMES;
     } else {
