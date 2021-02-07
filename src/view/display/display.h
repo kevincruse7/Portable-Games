@@ -18,7 +18,7 @@ void display_init(void);
  *
  * @param p_model Pointer to model to be rendered.
  *
- * @throws EIO Display device is not initialized
+ * @throws EIO Display device is not initialized.
  * @throws EINVAL Pointer to model is @c NULL.
  */
 void display_render(const struct Model *p_model);

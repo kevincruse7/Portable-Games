@@ -10,35 +10,35 @@
 
 #include <Arduino.h>
 #include <errno.h>
-#include <stdbool.h>
+#include <stdint.h>
 
 #include "model/model.h"
 
-#define DISPLAY_ONBOARD_LED_PIN 13
+// Pin mappings to display inputs
 #define DISPLAY_DIN_PIN 22
 #define DISPLAY_CS_PIN 23
 #define DISPLAY_CLK_PIN 24
 
 // Is the display device uninitialized?
-static bool uninitialized = true;
+static uint8_t uninitialized = 1;
 
 // Serially writes the given data to the given address on the display
-static void display_write_data(byte address, byte data);
+static void display_write_data(uint8_t address, uint8_t data);
 
 void display_init(void) {
 
-  pinMode(DISPLAY_ONBOARD_LED_PIN, OUTPUT);
+  pinMode(LED_BUILTIN, OUTPUT);
   pinMode(DISPLAY_DIN_PIN, OUTPUT);
   pinMode(DISPLAY_CS_PIN, OUTPUT);
   pinMode(DISPLAY_CLK_PIN, OUTPUT);
 
-  display_write_data(0x09, 0x00);  // No data decoding
-  display_write_data(0x0A, 0x00);  // Screen brightness (0 - F)
+  display_write_data(0x09, 0);  // No data decoding
+  display_write_data(0x0A, 1);  // Screen brightness (0 - F)
   display_write_data(0x0B, MODEL_BOARD_COLS - 1);  // Column scan limit
-  display_write_data(0x0C, 0x01);  // Normal operation (shutdown mode)
-  display_write_data(0x0F, 0x00);  // Normal operation (display test mode)
+  display_write_data(0x0C, 1);  // Normal operation (shutdown mode)
+  display_write_data(0x0F, 0);  // Normal operation (display test mode)
 
-  uninitialized = false;
+  uninitialized = 0;
 }
 
 void display_render(const struct Model *p_model) {
@@ -56,7 +56,7 @@ void display_render(const struct Model *p_model) {
     byte rowData = 0;
     for (int col = 0; col < MODEL_BOARD_COLS; col++) {
       if (p_model->board[row][col] == true) {
-        rowData += B10000000 >> col;
+        rowData += 0x80 >> col;
       }
     }
 
@@ -64,7 +64,7 @@ void display_render(const struct Model *p_model) {
   }
 }
 
-static void display_write_data(byte address, byte data) {
+static void display_write_data(uint8_t address, uint8_t data) {
 
   digitalWrite(DISPLAY_CS_PIN, LOW);
 

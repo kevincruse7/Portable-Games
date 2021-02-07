@@ -27,14 +27,14 @@ void sound_init(void) {
   uninitialized = false;
 }
 
-void sound_movement_play(void) {
+void sound_play(const struct Model* p_model) {
 
   if (uninitialized) {
     errno = EIO;
     return;
   }
 
-  tone(SOUND_BUZZER_PIN, 220, 500 / CONTROLLER_FRAME_RATE);
+  tone(SOUND_BUZZER_PIN, p_model->current_note, 1000 / CONTROLLER_FRAME_RATE);
 }
 
 #endif  // __AVR_ATmega2560__

@@ -6,14 +6,19 @@
 
 #pragma once
 
+#include "model/model.h"
+
 /**
  * Initializes the system sound device.
  */
 void sound_init(void);
 
 /**
- * Plays movement sound on the sound device.
+ * Plays model sound on the sound device.
+ *
+ * @param p_model Pointer to model.
  *
  * @throws EIO Sound device is not initialized.
+ * @throws EINVAL Pointer to model is @c NULL.
  */
-void sound_movement_play(void);
+void sound_play(const struct Model *p_model);

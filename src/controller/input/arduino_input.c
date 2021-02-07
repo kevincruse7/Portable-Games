@@ -10,6 +10,7 @@
 
 #include <Arduino.h>
 #include <errno.h>
+#include <stdint.h>
 
 // Pin mappings to input buttons
 #define INPUT_ACTION_PIN 28
@@ -19,7 +20,7 @@
 #define INPUT_DOWN_PIN 32
 
 // Is the input device uninitialized?
-static bool uninitialized = true;
+static uint8_t uninitialized = 1;
 
 void input_init(void) {
 
@@ -29,16 +30,16 @@ void input_init(void) {
   pinMode(INPUT_RIGHT_PIN, INPUT_PULLUP);
   pinMode(INPUT_DOWN_PIN, INPUT_PULLUP);
 
-  uninitialized = false;
+  uninitialized = 0;
 }
 
-enum InputType input_get(enum MoveType *p_move_type) {
+enum InputType input_get(enum Direction *p_direction) {
 
   if (uninitialized) {
     errno = EIO;
     return INPUT_TYPE_NONE;
   }
-  if (p_move_type == NULL) {
+  if (p_direction == NULL) {
     errno = EINVAL;
     return INPUT_TYPE_NONE;
   }
@@ -47,19 +48,19 @@ enum InputType input_get(enum MoveType *p_move_type) {
     return INPUT_TYPE_ACTION;
   }
   if (digitalRead(INPUT_UP_PIN) == LOW) {
-    *p_move_type = MOVE_TYPE_UP;
+    *p_direction = DIRECTION_UP;
     return INPUT_TYPE_MOVE;
   }
   if (digitalRead(INPUT_LEFT_PIN) == LOW) {
-    *p_move_type = MOVE_TYPE_LEFT;
+    *p_direction = DIRECTION_LEFT;
     return INPUT_TYPE_MOVE;
   }
   if (digitalRead(INPUT_RIGHT_PIN) == LOW) {
-    *p_move_type = MOVE_TYPE_RIGHT;
+    *p_direction = DIRECTION_RIGHT;
     return INPUT_TYPE_MOVE;
   }
   if (digitalRead(INPUT_DOWN_PIN) == LOW) {
-    *p_move_type = MOVE_TYPE_DOWN;
+    *p_direction = DIRECTION_DOWN;
     return INPUT_TYPE_MOVE;
   }
 

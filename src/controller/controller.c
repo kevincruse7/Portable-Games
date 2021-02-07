@@ -6,7 +6,10 @@
 
 #include "controller/controller.h"
 
-#include <stdbool.h>
+#include <errno.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <time.h>
 
 #include "controller/input/input.h"
 #include "controller/system_time/system_time.h"
@@ -19,56 +22,76 @@
 // Calculate how much time is remaining in tick and sleep for that duration
 static void sleep_for_remainder_of_tick(SystemTime start_time);
 
-void run(void) {
+void run(const struct ModelFunctions *p_model_functions) {
+
+  if (p_model_functions == NULL
+      || p_model_functions->create == NULL
+      || p_model_functions->destroy == NULL
+      || p_model_functions->move == NULL
+      || p_model_functions->next_frame == NULL) {
+    errno = EINVAL;
+    return;
+  }
 
   input_init();
   display_init();
   sound_init();
 
-  struct Model *p_model = model_create();
+  srand(time(NULL));
+  struct Model *p_model = p_model_functions->create();
 
-  enum MoveType current_move = MOVE_TYPE_NONE;
-  enum MoveType last_move = MOVE_TYPE_NONE;
+  enum Direction current_direction = DIRECTION_NONE;
+  enum Direction last_direction = DIRECTION_NONE;
   enum InputType last_input = INPUT_TYPE_NONE;
 
-  const unsigned TICKS_BETWEEN_FRAMES = CONTROLLER_TICK_RATE / CONTROLLER_FRAME_RATE;
-  const unsigned TICKS_BETWEEN_REPEAT_MOVES = TICKS_BETWEEN_FRAMES;
+  const uint8_t TICKS_BETWEEN_FRAMES = CONTROLLER_TICK_RATE / CONTROLLER_FRAME_RATE;
+  const uint8_t TICKS_BETWEEN_ACTIONS = TICKS_BETWEEN_FRAMES;
+  const uint8_t TICKS_BETWEEN_REPEAT_MOVES = TICKS_BETWEEN_FRAMES;
 
-  unsigned ticks_until_next_frame = 0;
-  unsigned ticks_until_next_repeat_move = 0;
+  uint8_t ticks_until_next_frame = 0;
+  uint8_t ticks_until_next_action = 0;
+  uint8_t ticks_until_next_repeat_move = 0;
 
-  while (true) {
+  while (1) {
     SystemTime start_time = system_time_get();
 
-    switch (input_get(&current_move)) {
+    switch (input_get(&current_direction)) {
       case INPUT_TYPE_ACTION:
-        last_input = INPUT_TYPE_ACTION;
+        if (ticks_until_next_action == 0) {
+          last_input = INPUT_TYPE_ACTION;
+          ticks_until_next_action = TICKS_BETWEEN_ACTIONS;
+        }
         break;
       case INPUT_TYPE_MOVE:
-        if (current_move != last_move || ticks_until_next_repeat_move == 0) {
+        if (current_direction != last_direction || ticks_until_next_repeat_move == 0) {
           last_input = INPUT_TYPE_MOVE;
           ticks_until_next_repeat_move = TICKS_BETWEEN_REPEAT_MOVES;
         }
         break;
       case INPUT_TYPE_EXIT:
-        model_destroy(&p_model);
+        p_model_functions->destroy(&p_model);
         return;
       default:
         break;
     }
 
+    if (ticks_until_next_action != 0) {
+      ticks_until_next_action--;
+    }
     if (ticks_until_next_repeat_move != 0) {
       ticks_until_next_repeat_move--;
     }
 
     if (ticks_until_next_frame == 0) {
-      if (last_input == INPUT_TYPE_MOVE) {
-        model_move(p_model, current_move);
-        sound_movement_play();
-
-        last_move = current_move;
+      if (last_input == INPUT_TYPE_ACTION) {
+        p_model_functions->action(p_model);
+      } else if (last_input == INPUT_TYPE_MOVE) {
+        p_model_functions->move(p_model, current_direction);
+        last_direction = current_direction;
       }
 
+      p_model_functions->next_frame(p_model);
+      sound_play(p_model);
       display_render(p_model);
 
       last_input = INPUT_TYPE_NONE;
