@@ -1,30 +1,26 @@
 /**
- * Module defines a controller for running Snake.
+ * Module defines a controller for running arbitrary pixel games.
  *
  * @author Kevin Cruse
  */
+#ifndef CONTROLLER_H
+#define CONTROLLER_H
 
-#pragma once
 
 #include "model/model.h"
 
-/**
- * Defines a tick rate in ticks per second, with possible integer values spanning [1, 65,535].
- * This is used to determine how often the input device should be polled.
- */
-#define CONTROLLER_TICK_RATE 64
 
 /**
- * Defines a frame rate in frames per second, with possible integer values spanning
- * [1, 65,535]. This determines how often the view should be updated.
+ * Runs the pixel game with the given model functions and parameters.
+ *
+ * @param model_functions Collection of model functions to use.
+ * @param tick_rate Rate in ticks per second at which the input device should be polled.
+ * @param ticks_per_frame Rate in ticks per frame at which the view should be updated.
+ * @param ... Additional game-specific arguments.
+ *
+ * @throws ENOMEM Device is out of memory.
  */
-#define CONTROLLER_FRAME_RATE 8
+void run(ModelFunctions model_functions, int tick_rate, int ticks_per_frame, ...);
 
-/**
- * Runs the snake game with the given model functions.
- *
- * @param p_model_functions Pointer to model functions to use.
- *
- * @throws EINVAL Structure pointer or function pointers are @c NULL.
- */
-void run(const struct ModelFunctions *p_model_functions);
+
+#endif

@@ -1,24 +1,28 @@
 /**
- * Module defines interactions with the system sound device for running Snake.
+ * Module defines interactions with the system sound device for running arbitrary pixel games.
  *
  * @author Kevin Cruse
  */
+#ifndef SOUND_H
+#define SOUND_H
 
-#pragma once
 
 #include "model/model.h"
+
 
 /**
  * Initializes the system sound device.
  */
 void sound_init(void);
 
+
 /**
  * Plays model sound on the sound device.
  *
- * @param p_model Pointer to model.
- *
- * @throws EIO Sound device is not initialized.
- * @throws EINVAL Pointer to model is @c NULL.
+ * @param model Model to extract sound from.
+ * @param frame_rate Frame rate to determine note length with.
  */
-void sound_play(const struct Model *p_model);
+void sound_play(const Model* model, int frame_rate);
+
+
+#endif

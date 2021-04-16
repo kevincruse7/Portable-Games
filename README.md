@@ -18,6 +18,6 @@ Qt.
 - [x] Implement general model, view, and controller headers 
 - [x] Implement controller, should be capable of running any given model
 - [x] Implement display and sound for the Arduino
-- [ ] Implement a model for Snake
+- [x] Implement a model for Snake
 - [ ] Implement display and sound for Linux using Qt
 - [ ] Implement models for Tetris and a Zelda-like adventure game

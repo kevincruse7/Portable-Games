@@ -3,99 +3,318 @@
  *
  * @author Kevin Cruse
  */
-
 #include "model/snake_model.h"
 
+
+#include <errno.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdlib.h>
 
-struct Model* snake_model_create(void) {
 
-  // Create general model structure
-  struct Model* p_snake_model = (struct Model*) calloc(1, sizeof(struct Model));
-  p_snake_model->board[0][0] = true;
+#include "controller/system_time/system_time.h"
+#include "view/sound/notes.h"
 
-  // Create Snake model data structure
-  struct SnakeModelData* p_snake_model_data = (struct SnakeModelData*) calloc(1,
-      sizeof(struct SnakeModelData));
-  p_snake_model_data->p_snake_tile_list_head = (struct SnakeTileNode*) calloc(1,
-      sizeof(struct SnakeTileNode));
-  p_snake_model_data->p_snake_tile_list_tail = NULL;
 
-  // Fill board with food tiles in random positions
-  for (unsigned i = 0; i < SNAKE_MODEL_FOOD_TILES; i++) {
-    unsigned row;
-    unsigned col;
+const ModelFunctions SNAKE_MODEL_FUNCTIONS = {snake_create, snake_destroy, snake_action, snake_move, snake_next_frame};
 
-    do {
-      row = rand() % MODEL_BOARD_ROWS;
-      col = rand() % MODEL_BOARD_COLS;
+
+/**
+ * Frees multiple pointers at once.
+ *
+ * @param count Number of pointers to free.
+ * @param ... Pointers to free.
+ */
+static void snake_free_multiple(int count, ...);
+
+
+/**
+ * Retrieves an array of (row, column) pairs of free tiles.
+ *
+ * @param model Model to retrieve free tiles from.
+ * @param free_tiles Pointer to pointer in which to store array of (row, column) pairs.
+ *
+ * @returns Number of free tiles found.
+ * @throws ENOMEM Device is out of memory.
+ */
+static int snake_get_free_tiles(const Model* model, int (** free_tiles)[2]);
+
+
+/**
+ * Wraps the given coordinate around the given size using the Euclidean modulo.
+ *
+ * @param coordinate Coordinate to wrap.
+ * @param size Size to wrap around.
+ *
+ * @returns Wrapped coordinate.
+ */
+static int snake_wrap(int coordinate, int size);
+
+
+Model* snake_create(va_list args) {
+    // Extracts number of food tiles from variadic arguments
+    int num_food_tiles = va_arg(args, int);
+
+    // Create new Snake model
+    Model* model = (Model*) malloc(sizeof(Model));
+    if (errno == ENOMEM) {
+        return NULL;
     }
-    while (p_snake_model->board[row][col]);
+    model->game_over = false;
+    model->current_note = NOTE_NONE;
 
-    p_snake_model_data->food_tiles[i][0] = row;
-    p_snake_model_data->food_tiles[i][1] = col;
+    // Create new Snake board
+    bool (* board)[MODEL_COLS] = (bool (*)[]) calloc(MODEL_ROWS, sizeof(bool[MODEL_COLS]));
+    if (errno == ENOMEM) {
+        free(model);
+        return NULL;
+    }
+    model->board = board;
+    board[0][0] = true;
 
-    p_snake_model->board[row][col] = true;
-  }
+    // Create new set of game-specific data for Snake
+    SnakeGameData* game_data = (SnakeGameData*) malloc(sizeof(SnakeGameData));
+    if (errno == ENOMEM) {
+        snake_free_multiple(2, model, board);
+        return NULL;
+    }
+    model->game_data = (void*) game_data;
+    game_data->current_direction = DIRECTION_RIGHT;
 
-  // Snake starts in the top left corner, pointing rightward
-  p_snake_model_data->current_direction = DIRECTION_RIGHT;
+    // Start with a snake of size one in the top left corner
+    SnakeTileNode* snake_tile_node = (SnakeTileNode*) malloc(sizeof(SnakeTileNode));
+    if (errno == ENOMEM) {
+        snake_free_multiple(3, model, board, game_data);
+        return NULL;
+    }
+    game_data->snake_tile_list_head = snake_tile_node;
+    game_data->snake_tile_list_tail = snake_tile_node;
+    snake_tile_node->position[0] = 0;
+    snake_tile_node->position[1] = 0;
+    snake_tile_node->prev = NULL;
 
-  // Add reference to snake data into general model structure and return
-  p_snake_model->p_game_data = p_snake_model_data;
-  return p_snake_model;
+    // Create new food tile list
+    bool (* food_tiles)[MODEL_COLS] = (bool (*)[]) calloc(MODEL_ROWS, sizeof(bool[MODEL_COLS]));
+    if (errno == ENOMEM) {
+        snake_free_multiple(4, model, board, game_data, snake_tile_node);
+        return NULL;
+    }
+    game_data->food_tiles = food_tiles;
+
+    // Get list of (row, column) pairs indicating free board tiles
+    // and cap number of food tiles to the number of free tiles
+    int (* free_tiles)[2];
+    int num_free_tiles = snake_get_free_tiles(model, &free_tiles);
+    if (errno == ENOMEM) {
+        snake_free_multiple(5, model, board, game_data, snake_tile_node, food_tiles);
+        return NULL;
+    }
+    if (num_food_tiles > num_free_tiles) {
+        num_food_tiles = num_free_tiles;
+    }
+
+    // Put food tiles in random positions on the board
+    for (int i = 0; i < num_food_tiles; i++) {
+        int tile = rand() % num_free_tiles;
+        int row = free_tiles[tile][0];
+        int col = free_tiles[tile][1];
+
+        board[row][col] = food_tiles[row][col] = true;
+
+        // Once tile has been chosen, remove it from free tile list
+        for (int j = tile; j < num_food_tiles - 1; j++) {
+            free_tiles[j][0] = free_tiles[j + 1][0];
+            free_tiles[j][1] = free_tiles[j + 1][1];
+        }
+    }
+    free(free_tiles);
+
+    return model;
 }
 
-void snake_model_destroy(struct Model** pp_snake_model) {
 
-  struct SnakeTileNode* p_snake_tile_list_prev;
-  struct SnakeTileNode* p_snake_tile_list_next = ((struct SnakeModelData*)
-      (*pp_snake_model)->p_game_data)->p_snake_tile_list_head;
+void snake_destroy(Model** model) {
+    // Clear Snake board
+    free((*model)->board);
 
-  // Free nodes in snake tile list
-  while (p_snake_tile_list_next != NULL) {
-    p_snake_tile_list_prev = p_snake_tile_list_next;
-    p_snake_tile_list_next = p_snake_tile_list_next->p_next;
-    free(p_snake_tile_list_prev);
-  }
+    SnakeGameData* game_data = (SnakeGameData*) (*model)->game_data;
 
-  // Free base model structures
-  free((*pp_snake_model)->p_game_data);
-  free(*pp_snake_model);
-  *pp_snake_model = NULL;
+    // Clear snake tile list
+    SnakeTileNode* prev = game_data->snake_tile_list_tail;
+    SnakeTileNode* next;
+    while (prev != NULL) {
+        next = prev;
+        prev = prev->prev;
+        free(next);
+    }
+
+    // Clear food tile board
+    free(game_data->food_tiles);
+
+    // Clear set of game-specific data
+    free(game_data);
+
+    // Clear Snake model
+    free(*model);
+    *model = NULL;
 }
 
-void snake_model_action(struct Model* unused) {
 
-  (void) unused;
+void snake_action(Model* model) {
+    (void) model;
 }
 
-void snake_model_move(struct Model* p_snake_model, enum Direction direction) {
 
-  struct SnakeModelData* p_snake_model_data = (struct SnakeModelData*) p_snake_model->p_game_data;
-  struct SnakeTileNode* p_snake_tile_list_head = p_snake_model_data->p_snake_tile_list_head;
-  struct SnakeTileNode* p_snake_tile_list_tail = p_snake_model_data->p_snake_tile_list_tail;
+void snake_move(Model* model, Direction direction) {
+    // Seed random number generator with time of first direction change
+    static bool first_move = true;
+    if (first_move) {
+        srand(system_time_get());
+    }
 
-  // If snake is longer than one tile, move tail node to head
-  if (p_snake_tile_list_head != p_snake_tile_list_tail) {
-    p_snake_tile_list_head->p_prev = p_snake_tile_list_tail;
-    p_snake_tile_list_tail->p_next = p_snake_tile_list_head;
-    p_snake_tile_list_tail->p_prev->p_next = NULL;
+    ((SnakeGameData*) model->game_data)->current_direction = direction;
+}
 
-    p_snake_model_data->p_snake_tile_list_head = p_snake_tile_list_tail;
-    p_snake_model_data->p_snake_tile_list_tail = p_snake_tile_list_tail->p_prev;
 
-    p_snake_tile_list_head = p_snake_model_data->p_snake_tile_list_head;
-    p_snake_tile_list_tail = p_snake_model_data->p_snake_tile_list_tail;
-  }
+void snake_next_frame(Model* model) {
+    static int frame = 0;
 
-  switch (direction) {
-    case DIRECTION_UP:
-    case DIRECTION_DOWN:
-    case DIRECTION_LEFT:
-    case DIRECTION_RIGHT:
-    default:
-      break;
-  }
+    // Move and play note every other frame
+    if (frame % 2 == 0) {
+        // Update board with removal of old tail position
+        SnakeGameData* game_data = (SnakeGameData*) model->game_data;
+        SnakeTileNode* snake_tile_list_head = game_data->snake_tile_list_head;
+        SnakeTileNode* snake_tile_list_tail = game_data->snake_tile_list_tail;
+        int* position = snake_tile_list_tail->position;
+        if (position[0] >= 0 && position[1] >= 0) {
+            model->board[position[0]][position[1]] = false;
+        }
+
+        // If snake is longer than one tile, move tail node to head
+        if (snake_tile_list_head != snake_tile_list_tail) {
+            // Update tail's position to match that of head
+            position[0] = snake_tile_list_head->position[0];
+            position[1] = snake_tile_list_head->position[1];
+
+            // Connect old head to new head
+            snake_tile_list_head->prev = snake_tile_list_tail;
+
+            // Update references to head and tail nodes
+            snake_tile_list_head = game_data->snake_tile_list_head = snake_tile_list_tail;
+            snake_tile_list_tail = game_data->snake_tile_list_tail = snake_tile_list_tail->prev;
+
+            // Update endpoint
+            snake_tile_list_head->prev = NULL;
+        }
+
+        // Move new head tile in the direction currently being faced
+        switch (game_data->current_direction) {
+            case DIRECTION_UP:
+                position[0] = snake_wrap(position[0] - 1, MODEL_ROWS);
+                break;
+            case DIRECTION_DOWN:
+                position[0] = snake_wrap(position[0] + 1, MODEL_ROWS);
+                break;
+            case DIRECTION_LEFT:
+                position[1] = snake_wrap(position[1] - 1, MODEL_ROWS);
+                break;
+            case DIRECTION_RIGHT:
+                position[1] = snake_wrap(position[1] + 1, MODEL_ROWS);
+                break;
+            default:
+                break;
+        }
+
+        if (model->board[position[0]][position[1]]) {
+            // If snake has run into an occupied tile that is a food tile, then replace food tile
+            // and grow snake. Otherwise, occupied tile is a snake tile, and game is lost
+            if (game_data->food_tiles[position[0]][position[1]]) {
+                // If tile is a food tile, play an E
+                model->current_note = NOTE_E5;
+
+                // Remove old food tile
+                game_data->food_tiles[position[0]][position[1]] = false;
+
+                // Get list of available spots to put new food tile
+                int (* free_tiles)[2];
+                int num_free_tiles = snake_get_free_tiles(model, &free_tiles);
+                if (errno == ENOMEM) return;
+
+                // If there are no available spots, the game is won
+                if (num_free_tiles == 0) {
+                    model->game_over = true;
+                    return;
+                }
+
+                // Otherwise, choose an available tile to be a new food tile
+                int tile = rand() % num_free_tiles;
+                int row = free_tiles[tile][0];
+                int col = free_tiles[tile][1];
+                free(free_tiles);
+
+                // Update game boards
+                model->board[row][col] = true;
+                game_data->food_tiles[row][col] = true;
+
+                // Grow snake in size
+                SnakeTileNode* new_snake_tile = (SnakeTileNode*) malloc(sizeof(SnakeTileNode));
+                new_snake_tile->position[0] = -1;
+                new_snake_tile->position[1] = -1;
+                new_snake_tile->prev = snake_tile_list_tail;
+                game_data->snake_tile_list_tail = new_snake_tile;
+            } else {
+                model->game_over = true;
+                return;
+            }
+        } else {
+            // If snake has not run into a tile, play an A
+            model->current_note = NOTE_A4;
+        }
+
+        // Update board with new head tile
+        model->board[position[0]][position[1]] = true;
+    } else {
+        model->current_note = NOTE_NONE;
+    }
+
+    frame = (frame + 1) % 2;
+}
+
+
+static void snake_free_multiple(int count, ...) {
+    va_list args;
+    va_start(args, count);
+    for (int i = 0; i < count; i++) {
+        free(va_arg(args, void*));
+    }
+    va_end(args);
+}
+
+
+static int snake_get_free_tiles(const Model* model, int (** free_tiles)[2]) {
+    *free_tiles = (int (*)[]) malloc(MODEL_ROWS * MODEL_COLS * sizeof(int[2]));
+    if (errno == ENOMEM) return 0;
+
+    int num_free_tiles = 0;
+    for (int row = 0; row < MODEL_ROWS; row++) {
+        for (int col = 0; col < MODEL_COLS; col++) {
+            if (!model->board[row][col]) {
+                (*free_tiles)[num_free_tiles][0] = row;
+                (*free_tiles)[num_free_tiles][1] = col;
+
+                num_free_tiles++;
+            }
+        }
+    }
+
+    return num_free_tiles;
+}
+
+
+static int snake_wrap(int coordinate, int size) {
+    if (coordinate >= 0) {
+        return coordinate % size;
+    } else {
+        return coordinate % size + size;
+    }
 }

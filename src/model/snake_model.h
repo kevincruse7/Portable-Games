@@ -3,106 +3,100 @@
  *
  * @author Kevin Cruse
  */
+#ifndef SNAKE_MODEL_H
+#define SNAKE_MODEL_H
 
-#pragma once
 
+#include <stdarg.h>
 #include "model/model.h"
 
+
 /**
- * Defines the number of food tiles that can spawn on the board, with possible
- * integer values spanning [1, @c MODEL_BOARD_ROWS * @c MODEL_BOARD_COLS].
+ * Collection of model functions for Snake.
  */
-#define SNAKE_MODEL_FOOD_TILES 2
+extern const ModelFunctions SNAKE_MODEL_FUNCTIONS;
+
 
 /**
  * Represents a snake tile in a doubly linked list of board tiles.
  */
-struct SnakeTileNode {
+typedef struct SnakeTileNode {
+    /**
+     * Position of tile by its row and column on the board.
+     */
+    int position[2];
+    /**
+     * Pointer to previous tile in list.
+     */
+    struct SnakeTileNode* prev;
+} SnakeTileNode;
 
-  /**
-   * Position of tile by its row and column on the board.
-   */
-  unsigned char position[2];
-
-  /**
-   * Pointer to next tile in list.
-   */
-  struct SnakeTileNode* p_next;
-
-  /**
-   * Pointer to previous tile in list.
-   */
-   struct SnakeTileNode* p_prev;
-};
 
 /**
  * Additional model data needed for keeping track of snake and food tiles.
  */
-struct SnakeModelData {
+typedef struct SnakeGameData {
+    /**
+     * Linked list of tiles in which the snake occupies, in order from head to tail.
+     */
+    SnakeTileNode* snake_tile_list_head;
+    /**
+     * Pointer to tail of snake tile list.
+     */
+    SnakeTileNode* snake_tile_list_tail;
+    /**
+     * Copy of board only containing food tiles.
+     */
+    bool (* food_tiles)[MODEL_COLS];
+    /**
+     * Direction in which the snake is currently travelling.
+     */
+    Direction current_direction;
+} SnakeGameData;
 
-  /**
-   * Linked list of tiles in which the snake occupies, in order from head to tail.
-   */
-  struct SnakeTileNode* p_snake_tile_list_head;
-
-  /**
-   * Pointer to tail of snake tile list.
-   */
-  struct SnakeTileNode* p_snake_tile_list_tail;
-
-  /**
-   * Matrix of food tile positions.
-   */
-  unsigned char food_tiles[SNAKE_MODEL_FOOD_TILES][2];
-
-  /**
-   * Direction in which the snake is currently travelling.
-   */
-  enum Direction current_direction;
-};
 
 /**
- * Creates a model for Snake.
+ * Creates a new Snake model.
  *
- * @returns Pointer to Snake model upon success.
- * @returns @c NULL upon memory allocation error.
+ * @param args Number of food tiles to place on board.
+ * @returns Pointer to new model.
+ * @throws ENOMEM Device is out of memory.
  */
-struct Model* snake_model_create(void);
+Model* snake_create(va_list args);
+
 
 /**
- * Destroys the given Snake model and sets the pointer to @c NULL.
+ * Destroys the given Snake model.
  *
- * @param pp_snake_model Pointer to pointer to Snake model.
+ * @param model Double pointer to model to destroy.
  */
-void snake_model_destroy(struct Model** pp_snake_model);
+void snake_destroy(Model** model);
+
 
 /**
- * Performs an action, which has no effect in Snake.
- */
-void snake_model_action(struct Model* unused);
-
-/**
- * Points the snake toward the indicated direction.
+ * Performs an action on the given model, which has no effect in Snake.
  *
- * @param p_snake_model Pointer to Snake model.
+ * @param model Pointer to model to update.
+ */
+void snake_action(Model* model);
+
+
+/**
+ * Points the snake of the given model toward the indicated direction.
+ *
+ * @param model Pointer to model to update.
  * @param direction Direction in which to point.
  */
-void snake_model_move(struct Model* p_snake_model, enum Direction direction);
+void snake_move(Model* model, Direction direction);
+
 
 /**
- * Advances the Snake model to the next frame.
+ * Advances the given Snake model to the next frame.
  *
- * @param p_snake_model Pointer to Snake model.
+ * @param model Pointer to model to update.
+ * @throws ENOMEM Device is out of memory.
  */
-void snake_model_next_frame(struct Model* p_snake_model);
+void snake_next_frame(Model* model);
 
-/**
- * Structure containing pointers to all the model functions for Snake.
- */
-const struct ModelFunctions SNAKE_MODEL_FUNCTIONS = {
-  snake_model_create,
-  snake_model_destroy,
-  snake_model_action,
-  snake_model_move,
-  snake_model_next_frame
-};
+
+#endif

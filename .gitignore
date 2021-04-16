@@ -1,9 +1,9 @@
+# CLion project files
+.idea
+
 # CMake project files
 cmake-build*
 CMakeLists*
-
-# CLion project files
-.idea
 
 # PlatformIO project files
 .pio
