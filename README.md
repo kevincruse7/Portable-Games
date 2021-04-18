@@ -1,6 +1,6 @@
 # Portable Games
 
-Codebase that uses a model-view-controller design for developing simple pixel games (i.e. Snake,
+Codebase that uses a model-view-controller design for developing simple pixel games (e.g. Snake,
 Tetris) which can compile on both an Arduino using a dot matrix display and on a Linux machine using
 Qt.
 
