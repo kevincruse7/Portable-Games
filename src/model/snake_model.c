@@ -187,6 +187,7 @@ void snake_move(Model* model, Direction direction) {
     static bool first_move = true;
     if (first_move) {
         srand(system_time_get());
+        first_move = false;
     }
 
     ((SnakeGameData*) model->game_data)->current_direction = direction;
